@@ -66,7 +66,7 @@ inputs:
           path: rest-service
           dependencies:
           - cloudify-dsl-parser
-          - flask-securest
+          - cloudify-aria-extensions
         - name: cloudify-workflows
           path: workflows
           dependencies:
@@ -78,6 +78,7 @@ inputs:
         - name: cloudify-integration-tests
           path: tests
           dependencies:
+          - cloudify-cli
           - cloudify-plugins-common
           - cloudify-rest-client
           - cloudify-script-plugin
@@ -137,10 +138,9 @@ inputs:
         type: plugin
       cloudify-aws-plugin:
         type: plugin
-      flask-securest: {}
       docs.getcloudify.org:
         properties:
-          branch: 3.5.0-build
+          branch: 4.0.0-build
         python: false
       docs.getcloudify.org-site:
         python: false
@@ -161,6 +161,23 @@ inputs:
       je:
         properties:
           organization: dankilman
+      docl:
+        type: core
+        python:
+          dependencies:
+            - cloudify-plugins-common
+      cloudify-premium:
+        type: core
+      cloudify-aria-extensions:
+        type: core
+        python:
+          dependencies:
+            - incubator-ariatosca
+      incubator-ariatosca:
+        properties:
+          organization: apache
+        type: core
+
   virtualenv_name:
     description: |
       The virtualenv name in which all managed python packages will be installed
@@ -220,6 +237,8 @@ inputs:
     - nose-cov
     - mock==1.0.1
     - unittest2
+    - ipython
+    - pydevd
   constraints:
     description: |
       Constraints for all pip install commands.
