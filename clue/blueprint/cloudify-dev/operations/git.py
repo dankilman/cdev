@@ -395,6 +395,8 @@ class GitRepo(object):
                     versions_branch)).stdout.strip()
         versions = yaml.safe_load(raw_versions)
         return versions.get('components', {})
+
+
 repo = GitRepo()
 
 
@@ -460,6 +462,8 @@ class Hub(object):
             'GIT_DIR': repo_location / '.git'
         })
         return hub.bake(_env=env)
+
+
 hub = Hub()
 
 
@@ -525,6 +529,7 @@ def func(repo_method):
             method = getattr(hub, repo_method)
         return method(**kwargs)
     return wrapper
+
 
 for method in ['clone', 'configure', 'pull', 'status', 'checkout', 'reset',
                'rebase', 'squash', 'diff', 'create_branch', 'branch_exists',
