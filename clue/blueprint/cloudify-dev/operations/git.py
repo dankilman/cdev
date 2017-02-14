@@ -17,6 +17,7 @@
 import json
 import os
 import sys
+import re
 
 import sh
 import yaml
@@ -103,6 +104,12 @@ class GitRepo(object):
         versions_prefix = '::'
         default_branch = self.branch
         active_feature = self.active_feature
+
+        if '*' in branch:
+            branch = branch.replace('.', '\.')
+            branch_name = self._get_branch_name_from_regex(branch)
+            branch = str(branch_name) if branch_name else default_branch
+
         if branch.startswith(versions_prefix):
             versions_branch = branch[len(versions_prefix):]
             components = self._read_versions_file(versions_branch)
@@ -395,6 +402,27 @@ class GitRepo(object):
                     versions_branch)).stdout.strip()
         versions = yaml.safe_load(raw_versions)
         return versions.get('components', {})
+
+    def _get_branch_name_from_regex(self, branch):
+        branches = self._escape_ansi(
+                self.git_output('branch', '-a').stdout).strip().split('\n')
+        branch_names = [item.strip().split("remotes/")[-1].split("origin/")[-1]
+                        for item in branches if re.search(branch, item)]
+        # remove duplicate branches remote and local
+        branch_name = list(set(branch_names))
+        if len(branch_name) > 1:
+            ctx.logger.error('More than one branch with regex {0} found: {1}'
+                             .format(branch, branch_name))
+            return None
+        elif len(branch_name) == 1:
+            branch_name = ''.join(branch_name[0])
+            return branch_name
+        else:
+            return None
+
+    def _escape_ansi(self, line):
+        ansi_escape = re.compile(r'(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]')
+        return ansi_escape.sub('', line)
 
 
 repo = GitRepo()
