@@ -148,19 +148,6 @@ inputs:
         python:
           dependencies:
           - cloudify-agent
-      claw:
-        properties:
-          organization: dankilman
-        python:
-          dependencies:
-          - cloudify-system-tests
-      claw-scripts:
-        properties:
-          organization: dankilman
-        python: false
-      je:
-        properties:
-          organization: dankilman
       docl:
         type: core
         python:
