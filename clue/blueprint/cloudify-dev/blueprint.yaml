@@ -229,6 +229,7 @@ inputs:
     - virtualenv>=13.1.2
     - psutil==3.3.0
     - Fabric==1.8.3
+    - paramiko==1.12.4
 
   git_config:
     description: |
