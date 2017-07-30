@@ -17,6 +17,7 @@
 import json
 import os
 import sys
+import re
 
 import sh
 import yaml
@@ -103,6 +104,12 @@ class GitRepo(object):
         versions_prefix = '::'
         default_branch = self.branch
         active_feature = self.active_feature
+
+        if '*' in branch:
+            branch = branch.replace('.', '\.')
+            branch_name = self._get_branch_name_from_regex(branch)
+            branch = str(branch_name) if branch_name else default_branch
+
         if branch.startswith(versions_prefix):
             versions_branch = branch[len(versions_prefix):]
             components = self._read_versions_file(versions_branch)
@@ -146,6 +153,14 @@ class GitRepo(object):
                 self.git.checkout(branch).wait()
         except sh.ErrorReturnCode:
             ctx.logger.error('Could not checkout branch {0}'.format(branch))
+
+    def fetch(self, all):
+        ctx.logger.info('fetching {0}'.format('all' if all else 'origin'))
+        self.git.fetch.bake(all=True)()
+
+    def clean(self, force):
+        ctx.logger.info('{0}cleaning'.format('force ' if force else ''))
+        self.git.clean.bake(force=force)()
 
     def reset(self, hard, origin):
         if not self.validate_active_feature():
@@ -339,7 +354,10 @@ class GitRepo(object):
 
     def _git(self, log_out, repo_location=None):
         repo_location = repo_location or self.repo_location
-        git = sh.git
+        # set max time for each git operation..
+        # come to handle command workflow that get stuck
+        timeout = sh.timeout.bake(10)
+        git = timeout.git
         if log_out:
             git = bake(git)
         return git.bake(
@@ -395,6 +413,29 @@ class GitRepo(object):
                     versions_branch)).stdout.strip()
         versions = yaml.safe_load(raw_versions)
         return versions.get('components', {})
+
+    def _get_branch_name_from_regex(self, branch):
+        branches = self._escape_ansi(
+                self.git_output('branch', '-a').stdout).strip().split('\n')
+        branch_names = [item.strip().split("remotes/")[-1].split("origin/")[-1]
+                        for item in branches if re.search(branch, item)]
+        # remove duplicate branches remote and local
+        branch_name = list(set(branch_names))
+        if len(branch_name) > 1:
+            ctx.logger.error('More than one branch with regex {0} found: {1}'
+                             .format(branch, branch_name))
+            return None
+        elif len(branch_name) == 1:
+            branch_name = ''.join(branch_name[0])
+            return branch_name
+        else:
+            return None
+
+    def _escape_ansi(self, line):
+        ansi_escape = re.compile(r'(\x9B|\x1B\[)[0-?]*[ -\/]*[@-~]')
+        return ansi_escape.sub('', line)
+
+
 repo = GitRepo()
 
 
@@ -460,6 +501,8 @@ class Hub(object):
             'GIT_DIR': repo_location / '.git'
         })
         return hub.bake(_env=env)
+
+
 hub = Hub()
 
 
@@ -526,7 +569,9 @@ def func(repo_method):
         return method(**kwargs)
     return wrapper
 
+
 for method in ['clone', 'configure', 'pull', 'status', 'checkout', 'reset',
-               'rebase', 'squash', 'diff', 'create_branch', 'branch_exists',
-               'delete_branch', 'ci_status', 'compare', 'pull_request']:
+               'fetch', 'clean', 'rebase', 'squash', 'diff', 'create_branch',
+               'branch_exists', 'delete_branch', 'ci_status', 'compare',
+               'pull_request']:
     globals()[method] = func(method)

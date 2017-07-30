@@ -66,7 +66,6 @@ inputs:
           path: rest-service
           dependencies:
           - cloudify-dsl-parser
-          - flask-securest
         - name: cloudify-workflows
           path: workflows
           dependencies:
@@ -78,6 +77,7 @@ inputs:
         - name: cloudify-integration-tests
           path: tests
           dependencies:
+          - cloudify-cli
           - cloudify-plugins-common
           - cloudify-rest-client
           - cloudify-script-plugin
@@ -137,10 +137,9 @@ inputs:
         type: plugin
       cloudify-aws-plugin:
         type: plugin
-      flask-securest: {}
       docs.getcloudify.org:
         properties:
-          branch: 3.5.0-build
+          branch: 4.0.0-build
         python: false
       docs.getcloudify.org-site:
         python: false
@@ -148,19 +147,14 @@ inputs:
         python:
           dependencies:
           - cloudify-agent
-      claw:
-        properties:
-          organization: dankilman
+      docl:
+        type: core
         python:
           dependencies:
-          - cloudify-system-tests
-      claw-scripts:
-        properties:
-          organization: dankilman
-        python: false
-      je:
-        properties:
-          organization: dankilman
+            - cloudify-plugins-common
+      cloudify-premium:
+        type: core
+
   virtualenv_name:
     description: |
       The virtualenv name in which all managed python packages will be installed
@@ -220,6 +214,8 @@ inputs:
     - nose-cov
     - mock==1.0.1
     - unittest2
+    - ipython
+    - pydevd
   constraints:
     description: |
       Constraints for all pip install commands.
@@ -232,6 +228,9 @@ inputs:
     - elasticsearch==1.6.0
     - virtualenv>=13.1.2
     - psutil==3.3.0
+    - paramiko==1.18.3
+    - Fabric==1.13.1
+
   git_config:
     description: |
       Git config to apply to all repos.
@@ -321,6 +320,14 @@ node_types:
             active: {}
         rebase: self.operations.git.rebase
         squash: self.operations.git.squash
+        fetch:
+          implementation: self.operations.git.fetch
+          inputs:
+            all: {}
+        clean:
+          implementation: self.operations.git.clean
+          inputs:
+            force: {}
         reset:
           implementation: self.operations.git.reset
           inputs:
